@@ -10,15 +10,21 @@ templates = Jinja2Templates(directory="./templates/")
 
 FRC_SITEKEY = os.getenv("FRC_SITEKEY")
 FRC_APIKEY = os.getenv("FRC_APIKEY")
-FRIENDLY_SERVICE_ENDPOINT = os.getenv("FRIENDLY_SERVICE_ENDPOINT")
+
+# Optionally we can pass in custom endpoints to be used, such as "eu".
+FRC_SITEVERIFY_ENDPOINT = os.getenv("FRC_SITEVERIFY_ENDPOINT")
+FRC_WIDGET_ENDPOINT = os.getenv("FRC_WIDGET_ENDPOINT")
+
+if not FRC_SITEKEY or not FRC_APIKEY:
+    print(
+        "Please set the FRC_SITEKEY and FRC_APIKEY environment values before running this example to your Friendly Captcha sitekey and apikey respectively."
+    )
+    exit(1)
 
 frc_client = FriendlyCaptchaClient(
     api_key=FRC_APIKEY,
     sitekey=FRC_SITEKEY,
-    # https://developer.friendlycaptcha.com/docs/api/endpoints/siteverify
-    siteverify_endpoint=FRIENDLY_SERVICE_ENDPOINT + "/siteverify"
-    if FRIENDLY_SERVICE_ENDPOINT
-    else None,
+    siteverify_endpoint=FRC_SITEVERIFY_ENDPOINT,  # Optional, defaults to "global"
     strict=False,
 )
 
@@ -29,11 +35,9 @@ def read_root(request: Request):
         "demo.html",
         {
             "request": request,
-            "submitted": False,
-            "message": "Bots are not welcome!",
+            "message": "",
             "sitekey": FRC_SITEKEY,
-            # This could be set in the HTML code as well
-            "friendly_service_endpoint": FRIENDLY_SERVICE_ENDPOINT,
+            "widget_endpoint": FRC_WIDGET_ENDPOINT,
         },
     )
 
@@ -50,37 +54,37 @@ def post_form(
     )
 
     if not result.was_able_to_verify:
+        # In this case we were not actually able to verify the response embedded in the form, but we may still want to accept it.
+        # It could mean there is a network issue or that the service is down. In those cases you generally want to accept submissions anyhow
+        # That's why we use `shouldAccept()` below to actually accept or reject the form submission. It will return true in these cases.
+
         if result.is_client_error:
             # Something is wrong with our configuration, check your API key!
-            # Send yourself an alert to fix this! Your site is unprotected until you fix this
-            print(
-                "ERROR: Was unable to verify captcha because of a configuration error:",
-                result.error,
-            )
+            # Send yourself an alert to fix this! Your site is unprotected until you fix this.
+            print("CAPTCHA CONFIG ERROR: ", result.error)
         else:
-            print(result.error)
+            print("Failed to verify captcha response: ", result.error)
 
-    if result.should_accept:
+    if not result.should_accept:
         return templates.TemplateResponse(
             "demo.html",
             {
                 "request": request,
-                "submitted": True,
-                "message": "Success",
+                "message": "❌ Anti-robot check failed, please try again.",
                 "sitekey": FRC_SITEKEY,
-                # This could be set in the HTML code as well
-                "friendly_service_endpoint": FRIENDLY_SERVICE_ENDPOINT,
+                "widget_endpoint": FRC_WIDGET_ENDPOINT,
             },
         )
+
+    # The captcha was OK, process the form.
+    subject, message
 
     return templates.TemplateResponse(
         "demo.html",
         {
             "request": request,
-            "submitted": True,
-            "message": "Failed to verify",
+            "message": "✅ Your message has been submitted successfully.",
             "sitekey": FRC_SITEKEY,
-            # This could be set in the HTML code as well
-            "friendly_service_endpoint": FRIENDLY_SERVICE_ENDPOINT,
+            "widget_endpoint": FRC_WIDGET_ENDPOINT,
         },
     )

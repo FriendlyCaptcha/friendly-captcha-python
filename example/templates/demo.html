@@ -46,21 +46,20 @@
       display: block;
     }
   </style>
-  <!-- Via this tag you can change the friendly_service url more info here https://developer.friendlycaptcha.com/docs/sdk/configuration -->
+
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@friendlycaptcha/sdk@0.1.4/site.min.js" async defer></script>
+  <script nomodule src="https://cdn.jsdelivr.net/npm/@friendlycaptcha/sdk@0.1.4/site.compat.min.js" async
+    defer></script>
+
+  <!-- You can change the data-api-endpoint via this tag. More info here https://developer.friendlycaptcha.com/docs/sdk/configuration -->
   <!-- <meta name="frc-api-endpoint" content=".">  -->
 </head>
 
 <body>
   <main>
-    {% if submitted %}
-    <div class="success-box">
-      <h1>Thanks for your message!</h1>
-    </div>
-    {% endif %}
-
     <h1>Friendly Captcha Python SDK form</h1>
     {% if message %}
-    <p style="color: #ba1f1f">{{ message }}</p>
+    <p>{{ message }}</p>
     {% endif %}
     <form method="POST">
       <div class="form-group">
@@ -69,15 +68,12 @@
         <label>Message:</label><br />
         <textarea name="message"></textarea><br />
 
-        <div class="frc-captcha" data-sitekey="{{ sitekey }}" data-start="auto"
-          data-api-endpoint="{{ friendly_service_endpoint }}"></div>
+        <div class="frc-captcha" data-sitekey="{{ sitekey }}" {% if widget_endpoint
+          %}data-api-endpoint="{{ widget_endpoint }}" {% endif %}></div>
         <input style="margin-top: 1em" type="submit" value="Submit" />
       </div>
     </form>
   </main>
-  <script type="module" src="https://cdn.jsdelivr.net/npm/@friendlycaptcha/sdk@0.1.4/site.min.js" async defer></script>
-  <script nomodule src="https://cdn.jsdelivr.net/npm/@friendlycaptcha/sdk@0.1.4/site.compat.min.js" async
-    defer></script>
   <script>
     if (window.history.replaceState) {
       window.history.replaceState(null, null, window.location.href);
