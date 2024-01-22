@@ -44,7 +44,7 @@ def test_python_sdk():
     for test in test_data["tests"]:
         frc_client = FriendlyCaptchaClient(
             api_key="FRC_APIKEY",
-            sitekey="FRC_SITE_KEY",
+            sitekey="FRC_SITEKEY",
             siteverify_endpoint=f"{MOCK_SERVER_URL}{API_ENDPOINT}",
             strict=bool(test["strict"]),
         )

@@ -29,7 +29,7 @@ pip install -r requirements.txt
   - LOCAL_FRIENDLY_SERVICE_ENDPOINT_URL = "http://localhost:8182/api/v2/captcha"
 
 ```bash 
-FRC_APIKEY=<your api key> FRC_SITE_KEY=<your site key> FRIENDLY_SERVICE_ENDPOINT=<your siteverify endpoint> uvicorn main:app --reload --port 8000
+FRC_APIKEY=<your api key> FRC_SITEKEY=<your site key> FRIENDLY_SERVICE_ENDPOINT=<your siteverify endpoint> uvicorn main:app --reload --port 8000
 ```
 
 # Usage

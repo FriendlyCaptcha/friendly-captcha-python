@@ -2,24 +2,24 @@ import os
 
 from fastapi import FastAPI, Request, Form
 from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
 from friendly_captcha_client.client import FriendlyCaptchaClient, FriendlyCaptchaResult
 
 app = FastAPI()
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="./templates/")
 
-FRC_SITE_KEY = os.getenv("FRC_SITE_KEY")
+FRC_SITEKEY = os.getenv("FRC_SITEKEY")
 FRC_APIKEY = os.getenv("FRC_APIKEY")
 FRIENDLY_SERVICE_ENDPOINT = os.getenv("FRIENDLY_SERVICE_ENDPOINT")
 
 frc_client = FriendlyCaptchaClient(
     api_key=FRC_APIKEY,
-    sitekey=FRC_SITE_KEY,
+    sitekey=FRC_SITEKEY,
     # https://developer.friendlycaptcha.com/docs/api/endpoints/siteverify
-    siteverify_endpoint=FRIENDLY_SERVICE_ENDPOINT + "/siteverify" if FRIENDLY_SERVICE_ENDPOINT else None,
-    strict=False
+    siteverify_endpoint=FRIENDLY_SERVICE_ENDPOINT + "/siteverify"
+    if FRIENDLY_SERVICE_ENDPOINT
+    else None,
+    strict=False,
 )
 
 
@@ -29,29 +29,34 @@ def read_root(request: Request):
         "demo.html",
         {
             "request": request,
-            "Submitted": False,
-            "Message": "Bots are not welcomed!",
-            "Sitekey": FRC_SITE_KEY,
+            "submitted": False,
+            "message": "Bots are not welcome!",
+            "sitekey": FRC_SITEKEY,
             # This could be set in the HTML code as well
-            "Friendly_service_endpoint": FRIENDLY_SERVICE_ENDPOINT
-        }
+            "friendly_service_endpoint": FRIENDLY_SERVICE_ENDPOINT,
+        },
     )
 
 
 @app.post("/")
 def post_form(
-        request: Request,
-        subject: str = Form(None),
-        message: str = Form(None),
-        frc_captcha_response: str = Form(..., alias="frc-captcha-response")
+    request: Request,
+    subject: str = Form(None),
+    message: str = Form(None),
+    frc_captcha_response: str = Form(..., alias="frc-captcha-response"),
 ):
-    result: FriendlyCaptchaResult = frc_client.verify_captcha_response(frc_captcha_response)
+    result: FriendlyCaptchaResult = frc_client.verify_captcha_response(
+        frc_captcha_response
+    )
 
     if not result.was_able_to_verify:
         if result.is_client_error:
             # Something is wrong with our configuration, check your API key!
             # Send yourself an alert to fix this! Your site is unprotected until you fix this
-            print("ERROR: Was unable to verify captcha because of a configuration error:", result.error)
+            print(
+                "ERROR: Was unable to verify captcha because of a configuration error:",
+                result.error,
+            )
         else:
             print(result.error)
 
@@ -59,23 +64,23 @@ def post_form(
         return templates.TemplateResponse(
             "demo.html",
             {
-                "Request": request,
-                "Submitted": True,
-                "Message": "Success",
-                "Sitekey": FRC_SITE_KEY,
+                "request": request,
+                "submitted": True,
+                "message": "Success",
+                "sitekey": FRC_SITEKEY,
                 # This could be set in the HTML code as well
-                "Friendly_service_endpoint": FRIENDLY_SERVICE_ENDPOINT
-            }
+                "friendly_service_endpoint": FRIENDLY_SERVICE_ENDPOINT,
+            },
         )
 
     return templates.TemplateResponse(
         "demo.html",
         {
-            "Request": request,
-            "Submitted": True,
-            "Message": "Failed to verify",
-            "Sitekey": FRC_SITE_KEY,
+            "request": request,
+            "submitted": True,
+            "message": "Failed to verify",
+            "sitekey": FRC_SITEKEY,
             # This could be set in the HTML code as well
-            "Friendly_service_endpoint": FRIENDLY_SERVICE_ENDPOINT
-        }
+            "friendly_service_endpoint": FRIENDLY_SERVICE_ENDPOINT,
+        },
     )
