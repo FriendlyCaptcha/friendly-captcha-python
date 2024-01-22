@@ -5,7 +5,8 @@ import logging
 import requests
 from pydantic import BaseModel, field_validator, model_validator, ValidationError
 
-DEFAULT_VERIFY_URL = "https://global.frcapi.com/api/v2/captcha/siteverify"
+GLOBAL_SITEVERIFY_ENDPOINT = "https://global.frcapi.com/api/v2/captcha/siteverify"
+EU_SITEVERIFY_ENDPOINT = "https://eu.frcapi.com/api/v2/captcha/siteverify"
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -91,16 +92,21 @@ class FriendlyCaptchaClient:
         self,
         api_key: str,
         sitekey: str,
-        siteverify_endpoint: str = DEFAULT_VERIFY_URL,
+        siteverify_endpoint: str = GLOBAL_SITEVERIFY_ENDPOINT,
         strict=False,
         verbose=False,
     ):
         self.api_key = api_key
         self.sitekey = sitekey
         self.strict = strict
-        self.siteverify_endpoint = siteverify_endpoint
         self.logger = logging.getLogger(__name__)
         self.verbose = verbose
+
+        if siteverify_endpoint == "global":
+            siteverify_endpoint = GLOBAL_SITEVERIFY_ENDPOINT
+        elif siteverify_endpoint == "eu":
+            siteverify_endpoint = EU_SITEVERIFY_ENDPOINT
+        self.siteverify_endpoint = siteverify_endpoint
 
         self._non_strict_error_code = [
             DefaultErrorCodes.AUTH_REQUIRED,

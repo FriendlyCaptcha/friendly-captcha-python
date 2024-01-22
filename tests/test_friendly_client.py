@@ -58,6 +58,32 @@ MOCK_RESPONSES = {
 }
 
 
+def test_shorthand_siteverify_endpoint():
+    from friendly_captcha_client.client import FriendlyCaptchaClient
+
+    # test default
+    client = FriendlyCaptchaClient(
+        api_key="FRC_APIKEY",
+        sitekey="FRC_SITE_KEY",
+    )
+
+    assert (
+        client.siteverify_endpoint
+        == "https://global.frcapi.com/api/v2/captcha/siteverify"
+    )
+
+    # test 'eu' shorthand
+    client = FriendlyCaptchaClient(
+        api_key="FRC_APIKEY",
+        sitekey="FRC_SITE_KEY",
+        siteverify_endpoint="eu",
+    )
+
+    assert (
+        client.siteverify_endpoint == "https://eu.frcapi.com/api/v2/captcha/siteverify"
+    )
+
+
 # Mock the actual API post request to return the mock response
 def mock_post_request(*args, **kwargs):
     json_data = kwargs["json"]
