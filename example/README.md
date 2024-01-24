@@ -5,7 +5,7 @@ This application integrates Friendly Captcha for form submissions using FastAPI.
 ### Requirements
 
 - Python 3.9+
-- Your Friendly Captcha API key and site key.
+- Your Friendly Captcha API key and sitekey.
 
 ### Start the application
 
@@ -29,7 +29,7 @@ pip install -r requirements.txt
 > NOTE: `FRC_SITEVERIFY_ENDPOINT` and `FRC_WIDGET_ENDPOINT` are optional. If not set, the default values will be used. You can also use `global` or `eu` as shorthands for both.
 
 ```bash
-FRC_APIKEY=<your api key> FRC_SITEKEY=<your site key> FRC_SITEVERIFY_ENDPOINT=<siteverify endpoint> FRC_WIDGET_ENDPOINT=<widget endpoint> uvicorn main:app --reload --port 8000
+FRC_APIKEY=<your API key> FRC_SITEKEY=<your sitekey> FRC_SITEVERIFY_ENDPOINT=<siteverify endpoint> FRC_WIDGET_ENDPOINT=<widget endpoint> uvicorn main:app --reload --port 8000
 ```
 
 # Usage

@@ -17,7 +17,7 @@ FRC_WIDGET_ENDPOINT = os.getenv("FRC_WIDGET_ENDPOINT")
 
 if not FRC_SITEKEY or not FRC_APIKEY:
     print(
-        "Please set the FRC_SITEKEY and FRC_APIKEY environment values before running this example to your Friendly Captcha sitekey and apikey respectively."
+        "Please set the FRC_SITEKEY and FRC_APIKEY environment values before running this example to your Friendly Captcha sitekey and API key respectively."
     )
     exit(1)
 
@@ -77,7 +77,7 @@ def post_form(
         )
 
     # The captcha was OK, process the form.
-    subject, message
+    subject, message  # Normally we would use the form data here and submit it to our database.
 
     return templates.TemplateResponse(
         "demo.html",
