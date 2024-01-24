@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "friendly-captcha-client"
-version = "0.0.2"
+version = "0.0.3-dev"
 description = "A client for Friendly Captcha."
 authors = [
     "Antal Nagy <dev@friendlycaptcha.com>",
@@ -23,9 +23,3 @@ pydantic = "2.1.1"
 [tool.poetry.dev-dependencies]
 pytest = "7.4.0"
 requests-mock = "1.11.0"
-
-[build]
-exclude = [
-    "examples/*",
-    "integration_tests/*",
-]
