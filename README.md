@@ -80,7 +80,7 @@ The client offers several configuration options:
 - **api_key**: Your Friendly Captcha API key.
 - **sitekey**: Your Friendly Captcha sitekey.
 - **strict**: (Optional) In case the client was not able to verify the captcha response at all (for example if there is a network failure or a mistake in configuration), by default the `verify_captcha_response` returns `True` regardless. By passing `strict=True`, it will return `False` instead: every response needs to be strictly verified.
-- **siteverify_endpoint**: (Optional) The endpoint URL for the site verification API.
+- **siteverify_endpoint**: (Optional) The endpoint URL for the site verification API. Shorthands `eu` or `global` are also accepted. Default is `global`.
 - **verbose**: (Optional) Default is False. Turn on basic logging.
 - Error Handling: The client has built-in error handling mechanisms. In case of unexpected responses or errors from the Friendly Captcha API, the client will log the error and provide a default response.
 
