@@ -102,7 +102,7 @@ class FriendlyCaptchaClient:
         self.logger = logging.getLogger(__name__)
         self.verbose = verbose
 
-        if siteverify_endpoint == None or siteverify_endpoint == "global":
+        if siteverify_endpoint is None or siteverify_endpoint == "global":
             siteverify_endpoint = GLOBAL_SITEVERIFY_ENDPOINT
         elif siteverify_endpoint == "eu":
             siteverify_endpoint = EU_SITEVERIFY_ENDPOINT
