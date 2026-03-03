@@ -1,9 +1,17 @@
-from typing import Optional, Union
-from enum import Enum
+from typing import Union
 import logging
 
 import requests
-from pydantic import BaseModel, field_validator, model_validator, ValidationError
+from pydantic import ValidationError
+
+from friendly_captcha_client.schemas import (
+    DefaultErrorCodes,
+    FriendlyCaptchaResponse,
+    FriendlyCaptchaResult,
+    Error,
+    NON_STRICT_ERROR_CODES,
+    DECODE_RESPONSE_FAILED_INTERNAL_ERROR_CODE,
+)
 
 GLOBAL_SITEVERIFY_ENDPOINT = "https://global.frcapi.com/api/v2/captcha/siteverify"
 EU_SITEVERIFY_ENDPOINT = "https://eu.frcapi.com/api/v2/captcha/siteverify"
@@ -11,80 +19,6 @@ EU_SITEVERIFY_ENDPOINT = "https://eu.frcapi.com/api/v2/captcha/siteverify"
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
-
-DECODE_RESPONSE_FAILED_INTERNAL_ERROR_CODE = "decode_response_failed"
-NON_STRICT_ERROR_CODES = [
-    "auth_required",
-    "auth_invalid",
-    "sitekey_invalid",
-    "response_missing",
-    "bad_request",
-    "client_error",
-]
-
-
-class DefaultErrorCodes(str, Enum):
-    AUTH_REQUIRED = "auth_required"  # 401
-    AUTH_INVALID = "auth_invalid"  # 401
-    SITEKEY_INVALID = "sitekey_invalid"  # 400
-    RESPONSE_MISSING = "response_missing"  # 400
-    BAD_REQUEST = "bad_request"  # 400
-    RESPONSE_INVALID = "response_invalid"  # 200
-    RESPONSE_TIMEOUT = "response_timeout"  # 200
-    RESPONSE_DUPLICATE = "response_duplicate"  # 200
-    CLIENT_ERROR = "request_failed_due_to_client_error"
-
-    @staticmethod
-    def contains(value: str) -> bool:
-        return value in DefaultErrorCodes._value2member_map_
-
-
-class Error(BaseModel):
-    error_code: str
-    detail: str
-
-    @field_validator("error_code")
-    def error_code(cls, v: str):
-        """Validate and convert the error code to its enum representation if it exists."""
-        if DefaultErrorCodes.contains(v):
-            return DefaultErrorCodes(v)
-        return v or DECODE_RESPONSE_FAILED_INTERNAL_ERROR_CODE
-
-    @field_validator("detail")
-    def detail(cls, v: str):
-        """Return the error detail or a default message if not provided."""
-        return v or "Unknown error detail"
-
-
-class Challenge(BaseModel):
-    timestamp: str
-    origin: str
-
-
-class Data(BaseModel):
-    challenge: Challenge
-
-
-class FriendlyCaptchaResponse(BaseModel):
-    success: bool
-    data: Optional[Data] = None
-    error: Optional[Error] = None
-
-    @model_validator(mode="after")
-    def check_data_or_error(cls, values):
-        if values.success and values.error:
-            raise ValueError("If success is True, error should not be set.")
-        if not values.success and values.data:
-            raise ValueError("If success is False, data should not be set.")
-        return values
-
-
-class FriendlyCaptchaResult(BaseModel):
-    should_accept: bool
-    was_able_to_verify: bool
-    data: Optional[Data] = None
-    error: Optional[Error] = None
-    is_client_error: bool = False
 
 
 class FriendlyCaptchaClient:

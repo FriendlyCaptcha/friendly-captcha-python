@@ -1,7 +1,9 @@
+import json
 import requests
 import pytest
 
 from friendly_captcha_client.client import FriendlyCaptchaClient
+from friendly_captcha_client.schemas import FriendlyCaptchaResponse
 
 MOCK_SERVER_URL = "http://localhost:1090"
 API_ENDPOINT = "/api/v2/captcha/siteverify"
@@ -62,6 +64,44 @@ def test_python_sdk():
         assert (
             response.is_client_error == test["expectation"]["is_client_error"]
         ), f"Test {test['name']} failed [is client error]!"
+
+        # When verification succeeded, compare data to expected siteverify response
+        if response.data is not None:
+            raw = test.get("siteverify_response")
+            if raw is not None:
+                data = json.loads(raw) if isinstance(raw, str) else raw
+                if isinstance(data, dict) and data.get("success"):
+                    expected_response = FriendlyCaptchaResponse.model_validate(data)
+                    exp = expected_response.data
+                    res = response.data
+                    assert exp is not None, "Expected response data is missing"
+
+                    assert (
+                        exp.event_id == res.event_id
+                    ), f"Test {test['name']}: Event ID does not match expected value"
+                    assert (
+                        exp.challenge == res.challenge
+                    ), f"Test {test['name']}: Challenge data does not match expected value"
+                    assert (
+                        exp.risk_intelligence == res.risk_intelligence
+                    ), f"Test {test['name']}: Risk Intelligence data does not match expected value"
+
+                    # Check specific fields
+                    if (
+                        exp.risk_intelligence is not None
+                        and res.risk_intelligence is not None
+                    ):
+                        assert (
+                            exp.risk_intelligence.client.header_user_agent
+                            == res.risk_intelligence.client.header_user_agent
+                        ), f"Test {test['name']}: header_user_agent does not match"
+                        exp_browser = exp.risk_intelligence.client.browser
+                        res_browser = res.risk_intelligence.client.browser
+                        if exp_browser is not None and res_browser is not None:
+                            assert (
+                                exp_browser.id == res_browser.id
+                            ), f"Test {test['name']}: client.browser.id does not match"
+
         print(f"Tests {test['name']} passed!")
 
     print("All tests passed!")
