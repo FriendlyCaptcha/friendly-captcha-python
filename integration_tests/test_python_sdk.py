@@ -1,18 +1,20 @@
 import json
-import requests
 import pytest
+import requests
 
-from friendly_captcha_client.client import FriendlyCaptchaClient
-from friendly_captcha_client.schemas import FriendlyCaptchaResponse
+from friendly_captcha_client.client import (
+    FriendlyCaptchaClient,
+    RiskIntelligenceRetrieveResult,
+)
+from friendly_captcha_client.schemas import (
+    FriendlyCaptchaResponse,
+    RiskIntelligenceRetrieveResponse,
+)
 
 MOCK_SERVER_URL = "http://localhost:1090"
-API_ENDPOINT = "/api/v2/captcha/siteverify"
-TEST_ENDPOINT = "/api/v1/tests"
-HEADERS = {
-    "Content-Type": "application/json",
-    "Accept": "application/json",
-    "X-Frc-Sdk": "friendly-captcha-python-sdk@99.99.99",
-}
+
+CAPTCHA_SITEVERIFY_TESTS_ENDPOINT = "/api/v1/captcha/siteverifyTests"
+RISK_INTELLIGENCE_RETRIEVE_TESTS_ENDPOINT = "/api/v1/riskIntelligence/retrieveTests"
 
 
 def fetch_test_cases_from_server(endpoint: str):
@@ -37,17 +39,19 @@ def is_mock_server_running(url):
 
 
 @pytest.mark.skipif(
-    not is_mock_server_running(MOCK_SERVER_URL + TEST_ENDPOINT),
+    not is_mock_server_running(MOCK_SERVER_URL + CAPTCHA_SITEVERIFY_TESTS_ENDPOINT),
     reason="Mock server is not running, skipping integration test.",
 )
-def test_python_sdk():
-    test_data = fetch_test_cases_from_server(MOCK_SERVER_URL + TEST_ENDPOINT)
+def test_python_sdk_captcha_siteverify():
+    test_data = fetch_test_cases_from_server(
+        MOCK_SERVER_URL + CAPTCHA_SITEVERIFY_TESTS_ENDPOINT
+    )
 
     for test in test_data["tests"]:
         frc_client = FriendlyCaptchaClient(
             api_key="FRC_APIKEY",
             sitekey="FRC_SITEKEY",
-            siteverify_endpoint=f"{MOCK_SERVER_URL}{API_ENDPOINT}",
+            api_endpoint=MOCK_SERVER_URL,
             strict=bool(test["strict"]),
         )
 
@@ -105,3 +109,75 @@ def test_python_sdk():
         print(f"Tests {test['name']} passed!")
 
     print("All tests passed!")
+
+
+@pytest.mark.skipif(
+    not is_mock_server_running(
+        MOCK_SERVER_URL + RISK_INTELLIGENCE_RETRIEVE_TESTS_ENDPOINT
+    ),
+    reason="Mock server is not running, skipping integration test.",
+)
+def test_python_sdk_risk_intelligence_retrieve():
+    test_data = fetch_test_cases_from_server(
+        MOCK_SERVER_URL + RISK_INTELLIGENCE_RETRIEVE_TESTS_ENDPOINT
+    )
+
+    for test in test_data["tests"]:
+        frc_client = FriendlyCaptchaClient(
+            api_key="FRC_APIKEY",
+            sitekey="FRC_SITEKEY",
+            api_endpoint=MOCK_SERVER_URL,
+            strict=False,
+        )
+
+        response: RiskIntelligenceRetrieveResult = (
+            frc_client.retrieve_risk_intelligence(
+                token=test["token"],
+                timeout=10,
+            )
+        )
+
+        assert (
+            response.was_able_to_retrieve == test["expectation"]["was_able_to_retrieve"]
+        ), f"Test {test['name']} failed [was able to retrieve]!"
+        assert (
+            response.is_client_error == test["expectation"]["is_client_error"]
+        ), f"Test {test['name']} failed [is client error]!"
+
+        if response.data is not None:
+            raw = test.get("retrieve_response")
+            if raw is not None:
+                data = json.loads(raw) if isinstance(raw, str) else raw
+                if isinstance(data, dict) and data.get("success"):
+                    expected_response = RiskIntelligenceRetrieveResponse.model_validate(
+                        data
+                    )
+                    exp = expected_response.data
+                    res = response.data
+                    assert exp is not None, "Expected retrieve data is missing"
+
+                    assert (
+                        exp.risk_intelligence == res.risk_intelligence
+                    ), f"Test {test['name']}: Risk Intelligence data does not match expected value"
+                    assert (
+                        exp.details == res.details
+                    ), f"Test {test['name']}: Retrieve details do not match expected value"
+
+                    if (
+                        exp.risk_intelligence is not None
+                        and res.risk_intelligence is not None
+                    ):
+                        exp_client = exp.risk_intelligence.client
+                        res_client = res.risk_intelligence.client
+                        if exp_client is not None and res_client is not None:
+                            assert (
+                                exp_client.header_user_agent
+                                == res_client.header_user_agent
+                            ), f"Test {test['name']}: header_user_agent does not match"
+
+                            exp_browser = exp_client.browser
+                            res_browser = res_client.browser
+                            if exp_browser is not None and res_browser is not None:
+                                assert (
+                                    exp_browser.id == res_browser.id
+                                ), f"Test {test['name']}: client.browser.id does not match"

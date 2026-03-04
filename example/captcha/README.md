@@ -26,10 +26,11 @@ pip install -r requirements.txt
 
 - Setup env variables and start the application
 
-> NOTE: `FRC_SITEVERIFY_ENDPOINT` and `FRC_WIDGET_ENDPOINT` are optional. If not set, the default values will be used. You can also use `global` or `eu` as shorthands for both.
+> NOTE: `FRC_API_ENDPOINT` and `FRC_WIDGET_ENDPOINT` are optional. If not set, the default values will be used. You can also use `global` or `eu` as shorthands for both.
+> For the frontend `data-api-endpoint`, use the base endpoint (for example `http://localhost:8182`), not `/api/v2/captcha`.
 
 ```bash
-FRC_APIKEY=<your API key> FRC_SITEKEY=<your sitekey> FRC_SITEVERIFY_ENDPOINT=<siteverify endpoint> FRC_WIDGET_ENDPOINT=<widget endpoint> uvicorn main:app --reload --port 8000
+FRC_APIKEY=<your API key> FRC_SITEKEY=<your sitekey> FRC_API_ENDPOINT=<api endpoint> FRC_WIDGET_ENDPOINT=<widget endpoint> uvicorn main:app --reload --port 8000
 ```
 
 # Usage

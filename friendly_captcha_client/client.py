@@ -1,24 +1,33 @@
-from typing import Union
 import logging
+from typing import Any, Tuple, Type, TypeVar, Union
+from urllib.parse import urlparse
 
 import requests
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from friendly_captcha_client.schemas import (
-    DefaultErrorCodes,
     FriendlyCaptchaResponse,
     FriendlyCaptchaResult,
+    RiskIntelligenceRetrieveResponse,
+    RiskIntelligenceRetrieveResult,
+    DefaultErrorCodes,
     Error,
-    NON_STRICT_ERROR_CODES,
     DECODE_RESPONSE_FAILED_INTERNAL_ERROR_CODE,
+    NON_STRICT_ERROR_CODES,
 )
 
-GLOBAL_SITEVERIFY_ENDPOINT = "https://global.frcapi.com/api/v2/captcha/siteverify"
-EU_SITEVERIFY_ENDPOINT = "https://eu.frcapi.com/api/v2/captcha/siteverify"
+GLOBAL_API_ENDPOINT = "https://global.frcapi.com"
+EU_API_ENDPOINT = "https://eu.frcapi.com"
+
+CAPTCHA_SITEVERIFY_PATH = "/api/v2/captcha/siteverify"
+RISK_INTELLIGENCE_RETRIEVE_PATH = "/api/v2/riskIntelligence/retrieve"
+
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
+
+ResponseModelT = TypeVar("ResponseModelT", bound=BaseModel)
 
 
 class FriendlyCaptchaClient:
@@ -26,9 +35,11 @@ class FriendlyCaptchaClient:
         self,
         api_key: str,
         sitekey: str,
+        # Deprecated: use api_endpoint instead.
         siteverify_endpoint: str = None,
         strict=False,
         verbose=False,
+        api_endpoint: str = None,
     ):
         self.api_key = api_key
         self.sitekey = sitekey
@@ -36,51 +47,92 @@ class FriendlyCaptchaClient:
         self.logger = logging.getLogger(__name__)
         self.verbose = verbose
 
-        if siteverify_endpoint is None or siteverify_endpoint == "global":
-            siteverify_endpoint = GLOBAL_SITEVERIFY_ENDPOINT
-        elif siteverify_endpoint == "eu":
-            siteverify_endpoint = EU_SITEVERIFY_ENDPOINT
-        self.siteverify_endpoint = siteverify_endpoint
+        resolved_api_endpoint = self._resolve_api_endpoint(api_endpoint)
 
-        self._non_strict_error_code = [
-            DefaultErrorCodes.AUTH_REQUIRED,
-            DefaultErrorCodes.AUTH_INVALID,
-            DefaultErrorCodes.SITEKEY_INVALID,
-            DefaultErrorCodes.RESPONSE_MISSING,
-            DefaultErrorCodes.BAD_REQUEST,
-            DefaultErrorCodes.CLIENT_ERROR,
-        ]
+        if api_endpoint is None and siteverify_endpoint is not None:
+            resolved_api_endpoint = self._deprecated_endpoint_to_api_endpoint(
+                siteverify_endpoint,
+                "siteverify_endpoint",
+            )
 
-        self._strict_error_code = [
-            DefaultErrorCodes.RESPONSE_INVALID,
-            DefaultErrorCodes.RESPONSE_TIMEOUT,
-            DefaultErrorCodes.RESPONSE_DUPLICATE,
-        ]
+        self.api_endpoint = resolved_api_endpoint.rstrip("/")
+
+        self._non_strict_error_code = set(NON_STRICT_ERROR_CODES)
 
     @staticmethod
-    def _create_friendly_response_with_error(raw_response, default_error_detail):
+    def _resolve_api_endpoint(api_endpoint: str) -> str:
+        if api_endpoint is None or api_endpoint == "global":
+            return GLOBAL_API_ENDPOINT
+        if api_endpoint == "eu":
+            return EU_API_ENDPOINT
+        if api_endpoint == "":
+            raise ValueError("api_endpoint must not be empty")
+        return api_endpoint.rstrip("/")
+
+    @staticmethod
+    def _deprecated_endpoint_to_api_endpoint(
+        deprecated_endpoint: str, endpoint_param_name: str
+    ) -> str:
+        if deprecated_endpoint == "":
+            raise ValueError("{} must not be empty".format(endpoint_param_name))
+
+        if deprecated_endpoint in ("global", "eu"):
+            return FriendlyCaptchaClient._resolve_api_endpoint(deprecated_endpoint)
+
+        parsed = urlparse(deprecated_endpoint)
+        if not parsed.scheme or not parsed.netloc:
+            raise ValueError(
+                "invalid {} URL: expected fully qualified URL".format(
+                    endpoint_param_name
+                )
+            )
+
+        return "{}://{}".format(parsed.scheme, parsed.netloc)
+
+    def _api_url(self, path: str) -> str:
+        return "{}{}".format(self.api_endpoint, path)
+
+    @property
+    def siteverify_endpoint(self) -> str:
+        return self._api_url(CAPTCHA_SITEVERIFY_PATH)
+
+    @property
+    def risk_intelligence_retrieve_endpoint(self) -> str:
+        return self._api_url(RISK_INTELLIGENCE_RETRIEVE_PATH)
+
+    @staticmethod
+    def _create_response_with_error(
+        raw_response: Any,
+        default_error_detail: Exception,
+        response_model: Type[ResponseModelT],
+    ) -> ResponseModelT:
         if not isinstance(raw_response, dict):
             raw_response = {}
-            error_code = "decode_response_failed"
-        else:
-            error_code = raw_response.get("error", {}).get("error_code")
 
-        error_detail = raw_response.get("error", {}).get(
-            "details", str(default_error_detail)
+        error_payload = raw_response.get("error", {})
+        error_code = error_payload.get(
+            "error_code", DECODE_RESPONSE_FAILED_INTERNAL_ERROR_CODE
         )
-        return FriendlyCaptchaResponse(
+        error_detail = error_payload.get("detail", str(default_error_detail))
+
+        return response_model(
             success=raw_response.get("success", False),
             error=Error(
-                error_code=error_code if error_code else "",
-                detail=error_detail if error_detail else str(default_error_detail),
+                error_code=error_code,
+                detail=error_detail,
             ),
         )
 
     @staticmethod
-    def _is_client_error(error: Union[Error, None]):
-        return (
-            error is not None and error.error_code in NON_STRICT_ERROR_CODES
-        )  # TODO: this could be O(1)
+    def _normalize_error_code(error_code: Union[str, DefaultErrorCodes]) -> str:
+        if isinstance(error_code, DefaultErrorCodes):
+            return error_code.value
+        return str(error_code)
+
+    def _is_client_error(self, error: Union[Error, None]):
+        if error is None:
+            return False
+        return self._normalize_error_code(error.error_code) in NON_STRICT_ERROR_CODES
 
     @staticmethod
     def _get_current_version():
@@ -95,31 +147,45 @@ class FriendlyCaptchaClient:
             pass
         return my_version
 
-    def _process_response(self, response) -> (FriendlyCaptchaResponse, int):
-        """Process the API response and validate its structure.
+    def _process_response(
+        self, response: requests.Response, response_model: Type[ResponseModelT]
+    ) -> Tuple[ResponseModelT, int]:
+        """Process and validate an API response payload.
 
         Args:
             response (requests.Response): The API response.
+            response_model: The pydantic model used for response validation.
 
         Returns:
-            tuple: A tuple containing the FriendlyResponse object and the status code.
+            tuple: A tuple containing the parsed response model and the status code.
         """
+        raw_response: Any = {}
+
         try:
-            friendly_response = FriendlyCaptchaResponse.model_validate(response.json())
+            raw_response = response.json()
+        except Exception as e:
+            if self.verbose:
+                self.logger.error("Error decoding API JSON response: %s", e)
+            parsed_response = self._create_response_with_error({}, e, response_model)
+            return parsed_response, response.status_code
+
+        try:
+            parsed_response = response_model.model_validate(raw_response)
         except ValidationError as e:
             if self.verbose:
-                self.logger.error("Error in validating friendly response: %s", e)
-            friendly_response = self._create_friendly_response_with_error(
-                response.json(), e
+                self.logger.error("Error validating API response: %s", e)
+            parsed_response = self._create_response_with_error(
+                raw_response, e, response_model
             )
 
         except Exception as e:
             if self.verbose:
-                self.logger.error("Error parsing friendly response: %s", e)
-            friendly_response = self._create_friendly_response_with_error(
-                response.json(), e
+                self.logger.error("Error parsing API response: %s", e)
+            parsed_response = self._create_response_with_error(
+                raw_response, e, response_model
             )
-        return friendly_response, response.status_code
+
+        return parsed_response, response.status_code
 
     def _is_loose_verification_available(
         self, status_code: int, error: Union[Error, None]
@@ -140,22 +206,31 @@ class FriendlyCaptchaClient:
         )
 
     def _is_error_loose(self, error, status_code):
+        error_code = self._normalize_error_code(error.error_code)
+
         # known error where we allow loose verification
         if (
-            any(
-                error.error_code == _error.value
-                for _error in self._non_strict_error_code
-            )
+            error_code in self._non_strict_error_code
             or all(  # unknown errors where we allow loose verification
-                error.error_code != _error.value for _error in DefaultErrorCodes
+                error_code != _error.value for _error in DefaultErrorCodes
             )
             and status_code in [200, 500]
         ):
             return True
         return False
 
-    def _handle_api_response(self, response: requests.request) -> FriendlyCaptchaResult:
-        """Handle the API response and determine the success status.
+    @staticmethod
+    def _is_decode_response_failed(error: Union[Error, None]) -> bool:
+        return (
+            error is not None
+            and FriendlyCaptchaClient._normalize_error_code(error.error_code)
+            == DECODE_RESPONSE_FAILED_INTERNAL_ERROR_CODE
+        )
+
+    def _handle_verify_captcha_response(
+        self, response: requests.request
+    ) -> FriendlyCaptchaResult:
+        """Handle the verify captcha API response and determine the success status.
 
         Args:
             response (requests.Response): The API response.
@@ -163,18 +238,16 @@ class FriendlyCaptchaClient:
         Returns:
             FriendlyCaptchaResult: The processed result from the API response.
         """
-        friendly_response, status_code = self._process_response(response)
+        friendly_response, status_code = self._process_response(
+            response, FriendlyCaptchaResponse
+        )
 
         was_able_to_verify = status_code == 200
 
-        if was_able_to_verify and friendly_response.error is not None:
-            if (
-                friendly_response.error.error_code
-                == DECODE_RESPONSE_FAILED_INTERNAL_ERROR_CODE
-            ):
-                was_able_to_verify = False
-
-            # and not ((friendly_response.error is None) and friendly_response.error.error_code != "unknown_error_code")
+        if was_able_to_verify and self._is_decode_response_failed(
+            friendly_response.error
+        ):
+            was_able_to_verify = False
 
         friendly_result = FriendlyCaptchaResult(
             should_accept=self._is_loose_verification_available(
@@ -187,6 +260,32 @@ class FriendlyCaptchaClient:
         )
 
         return friendly_result
+
+    def _handle_risk_intelligence_retrieve_response(
+        self, response: requests.request
+    ) -> RiskIntelligenceRetrieveResult:
+        """Handle the risk intelligence retrieve API response and determine the success status.
+
+        Args:
+            response (requests.Response): The API response.
+
+        Returns:
+            RiskIntelligenceRetrieveResult: The processed result from the API response.
+        """
+        retrieve_response, status_code = self._process_response(
+            response, RiskIntelligenceRetrieveResponse
+        )
+
+        decode_response_failed = self._is_decode_response_failed(
+            retrieve_response.error
+        )
+
+        return RiskIntelligenceRetrieveResult(
+            was_able_to_retrieve=(status_code == 200 and not decode_response_failed),
+            is_client_error=(status_code != 200 and not decode_response_failed),
+            data=retrieve_response.data,
+            error=retrieve_response.error,
+        )
 
     def verify_captcha_response(
         self, captcha_response: str, timeout: int = 10
@@ -220,4 +319,37 @@ class FriendlyCaptchaClient:
             },
             timeout=timeout,
         )
-        return self._handle_api_response(response)
+        return self._handle_verify_captcha_response(response)
+
+    def retrieve_risk_intelligence(
+        self, token: str, timeout: int = 10
+    ) -> RiskIntelligenceRetrieveResult:
+        """Retrieve risk intelligence data for a risk intelligence token.
+
+        Refer to the official documentation for more details:
+        https://developer.friendlycaptcha.com/docs/api/endpoints/risk-intelligence-retrieve
+
+        Args:
+            token (str): The risk intelligence token to retrieve.
+            timeout (int, optional): The request timeout in seconds. Defaults to 10.
+
+        Returns:
+             RiskIntelligenceRetrieveResult: The processed result from the API response.
+        """
+        if not isinstance(token, str):
+            return RiskIntelligenceRetrieveResult(
+                was_able_to_retrieve=False,
+            )
+
+        response = requests.post(
+            url=self.risk_intelligence_retrieve_endpoint,
+            json={"token": token},
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "X-Api-Key": self.api_key,
+                "Frc-Sdk": f"friendly-captcha-python@{self._get_current_version()}",
+            },
+            timeout=timeout,
+        )
+        return self._handle_risk_intelligence_retrieve_response(response)

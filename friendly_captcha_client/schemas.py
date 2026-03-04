@@ -1,6 +1,8 @@
-from pydantic import BaseModel, Field, field_validator, model_validator
-from typing import Optional
 from enum import Enum
+from typing import Optional
+
+from pydantic import BaseModel, field_validator, model_validator
+
 from friendly_captcha_client.schemas_risk_intelligence import RiskIntelligenceData
 
 DECODE_RESPONSE_FAILED_INTERNAL_ERROR_CODE = "decode_response_failed"
@@ -10,6 +12,9 @@ NON_STRICT_ERROR_CODES = [
     "sitekey_invalid",
     "response_missing",
     "bad_request",
+    "token_missing",
+    "token_expired",
+    "request_failed_due_to_client_error",
     "client_error",
 ]
 
@@ -19,6 +24,8 @@ class DefaultErrorCodes(str, Enum):
     AUTH_INVALID = "auth_invalid"  # 401
     SITEKEY_INVALID = "sitekey_invalid"  # 400
     RESPONSE_MISSING = "response_missing"  # 400
+    TOKEN_MISSING = "token_missing"  # 400
+    TOKEN_EXPIRED = "token_expired"  # 400
     BAD_REQUEST = "bad_request"  # 400
     RESPONSE_INVALID = "response_invalid"  # 200
     RESPONSE_TIMEOUT = "response_timeout"  # 200
@@ -35,14 +42,14 @@ class Error(BaseModel):
     detail: str
 
     @field_validator("error_code")
-    def error_code(cls, v: str):
+    def validate_error_code(cls, v: str):
         """Validate and convert the error code to its enum representation if it exists."""
         if DefaultErrorCodes.contains(v):
             return DefaultErrorCodes(v)
         return v or DECODE_RESPONSE_FAILED_INTERNAL_ERROR_CODE
 
     @field_validator("detail")
-    def detail(cls, v: str):
+    def validate_detail(cls, v: str):
         """Return the error detail or a default message if not provided."""
         return v or "Unknown error detail"
 
@@ -87,5 +94,42 @@ class FriendlyCaptchaResult(BaseModel):
     should_accept: bool
     was_able_to_verify: bool
     data: Optional[VerifyResponseData] = None
+    error: Optional[Error] = None
+    is_client_error: bool = False
+
+
+class RiskIntelligenceRetrieveResponseDetails(BaseModel):
+    # Timestamp when the token was generated.
+    timestamp: str
+    # Timestamp when the token expires.
+    expires_at: str
+    # Number of times the token has been used.
+    num_uses: int
+
+
+class RiskIntelligenceRetrieveResponseData(BaseModel):
+    # Risk information extracted from the retrieve token.
+    risk_intelligence: Optional[RiskIntelligenceData] = None
+    # Metadata about the token and retrieval operation.
+    details: RiskIntelligenceRetrieveResponseDetails
+
+
+class RiskIntelligenceRetrieveResponse(BaseModel):
+    success: bool
+    data: Optional[RiskIntelligenceRetrieveResponseData] = None
+    error: Optional[Error] = None
+
+    @model_validator(mode="after")
+    def check_data_or_error(cls, values):
+        if values.success and values.error:
+            raise ValueError("If success is True, error should not be set.")
+        if not values.success and values.data:
+            raise ValueError("If success is False, data should not be set.")
+        return values
+
+
+class RiskIntelligenceRetrieveResult(BaseModel):
+    was_able_to_retrieve: bool
+    data: Optional[RiskIntelligenceRetrieveResponseData] = None
     error: Optional[Error] = None
     is_client_error: bool = False

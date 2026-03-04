@@ -3,7 +3,11 @@ from unittest.mock import Mock, patch
 import pytest
 import requests_mock
 
-from friendly_captcha_client.client import DefaultErrorCodes, FriendlyCaptchaResult
+from friendly_captcha_client.client import (
+    DefaultErrorCodes,
+    FriendlyCaptchaResult,
+    RiskIntelligenceRetrieveResult,
+)
 
 # Mocked responses for different scenarios
 CAPTCHA_RESPONSE = "test_captcha_response"
@@ -58,29 +62,223 @@ MOCK_RESPONSES = {
 }
 
 
-def test_shorthand_siteverify_endpoint():
+def test_default_api_endpoint():
     from friendly_captcha_client.client import FriendlyCaptchaClient
 
-    # test default
     client = FriendlyCaptchaClient(
         api_key="FRC_APIKEY",
         sitekey="FRC_SITE_KEY",
     )
+    assert client.api_endpoint == "https://global.frcapi.com"
+    assert (
+        client.siteverify_endpoint
+        == "https://global.frcapi.com/api/v2/captcha/siteverify"
+    )
+    assert (
+        client.risk_intelligence_retrieve_endpoint
+        == "https://global.frcapi.com/api/v2/riskIntelligence/retrieve"
+    )
 
+
+def test_shorthand_api_endpoint():
+    from friendly_captcha_client.client import FriendlyCaptchaClient
+
+    client = FriendlyCaptchaClient(
+        api_key="FRC_APIKEY",
+        sitekey="FRC_SITE_KEY",
+        api_endpoint="eu",
+    )
+
+    assert client.api_endpoint == "https://eu.frcapi.com"
+    assert (
+        client.siteverify_endpoint
+        == "https://eu.frcapi.com/api/v2/captcha/siteverify"
+    )
+    assert (
+        client.risk_intelligence_retrieve_endpoint
+        == "https://eu.frcapi.com/api/v2/riskIntelligence/retrieve"
+    )
+
+
+def test_api_endpoint_must_not_be_empty():
+    from friendly_captcha_client.client import FriendlyCaptchaClient
+
+    with pytest.raises(ValueError, match="api_endpoint must not be empty"):
+        FriendlyCaptchaClient(
+            api_key="FRC_APIKEY",
+            sitekey="FRC_SITE_KEY",
+            api_endpoint="",
+        )
+
+
+def test_siteverify_endpoint_is_deprecated_shorthand():
+    from friendly_captcha_client.client import FriendlyCaptchaClient
+
+    with pytest.deprecated_call(match="siteverify_endpoint is deprecated"):
+        client = FriendlyCaptchaClient(
+            api_key="FRC_APIKEY",
+            sitekey="FRC_SITE_KEY",
+            siteverify_endpoint="eu",
+        )
+
+    assert client.api_endpoint == "https://eu.frcapi.com"
+    assert (
+        client.siteverify_endpoint == "https://eu.frcapi.com/api/v2/captcha/siteverify"
+    )
+
+
+def test_siteverify_endpoint_is_deprecated_and_strips_path():
+    from friendly_captcha_client.client import FriendlyCaptchaClient
+
+    with pytest.deprecated_call(match="siteverify_endpoint is deprecated"):
+        client = FriendlyCaptchaClient(
+            api_key="FRC_APIKEY",
+            sitekey="FRC_SITE_KEY",
+            siteverify_endpoint="https://eu.frcapi.com/api/v2/captcha/siteverify",
+        )
+
+    assert client.api_endpoint == "https://eu.frcapi.com"
+    assert (
+        client.siteverify_endpoint == "https://eu.frcapi.com/api/v2/captcha/siteverify"
+    )
+    assert (
+        client.risk_intelligence_retrieve_endpoint
+        == "https://eu.frcapi.com/api/v2/riskIntelligence/retrieve"
+    )
+
+
+def test_siteverify_endpoint_empty_is_error():
+    from friendly_captcha_client.client import FriendlyCaptchaClient
+
+    with pytest.deprecated_call(match="siteverify_endpoint is deprecated"):
+        with pytest.raises(ValueError, match="siteverify_endpoint must not be empty"):
+            FriendlyCaptchaClient(
+                api_key="FRC_APIKEY",
+                sitekey="FRC_SITE_KEY",
+                siteverify_endpoint="",
+            )
+
+
+def test_siteverify_endpoint_invalid_url_is_error():
+    from friendly_captcha_client.client import FriendlyCaptchaClient
+
+    with pytest.deprecated_call(match="siteverify_endpoint is deprecated"):
+        with pytest.raises(
+            ValueError, match="invalid siteverify_endpoint URL: expected fully qualified URL"
+        ):
+            FriendlyCaptchaClient(
+                api_key="FRC_APIKEY",
+                sitekey="FRC_SITE_KEY",
+                siteverify_endpoint="not-a-url",
+            )
+
+
+def test_api_endpoint_takes_precedence_over_deprecated_siteverify_endpoint():
+    from friendly_captcha_client.client import FriendlyCaptchaClient
+
+    with pytest.deprecated_call(match="siteverify_endpoint is deprecated"):
+        client = FriendlyCaptchaClient(
+            api_key="FRC_APIKEY",
+            sitekey="FRC_SITE_KEY",
+            api_endpoint="global",
+            siteverify_endpoint="https://eu.frcapi.com/api/v2/captcha/siteverify",
+        )
+
+    assert client.api_endpoint == "https://global.frcapi.com"
     assert (
         client.siteverify_endpoint
         == "https://global.frcapi.com/api/v2/captcha/siteverify"
     )
 
-    # test 'eu' shorthand
-    client = FriendlyCaptchaClient(
-        api_key="FRC_APIKEY",
-        sitekey="FRC_SITE_KEY",
-        siteverify_endpoint="eu",
+
+def test_risk_intelligence_retrieve_endpoint_is_deprecated_shorthand():
+    from friendly_captcha_client.client import FriendlyCaptchaClient
+
+    with pytest.deprecated_call(
+        match="risk_intelligence_retrieve_endpoint is deprecated"
+    ):
+        client = FriendlyCaptchaClient(
+            api_key="FRC_APIKEY",
+            sitekey="FRC_SITE_KEY",
+            risk_intelligence_retrieve_endpoint="eu",
+        )
+
+    assert client.api_endpoint == "https://eu.frcapi.com"
+    assert (
+        client.risk_intelligence_retrieve_endpoint
+        == "https://eu.frcapi.com/api/v2/riskIntelligence/retrieve"
     )
 
+
+def test_risk_intelligence_retrieve_endpoint_is_deprecated_and_strips_path():
+    from friendly_captcha_client.client import FriendlyCaptchaClient
+
+    with pytest.deprecated_call(
+        match="risk_intelligence_retrieve_endpoint is deprecated"
+    ):
+        client = FriendlyCaptchaClient(
+            api_key="FRC_APIKEY",
+            sitekey="FRC_SITE_KEY",
+            risk_intelligence_retrieve_endpoint="https://eu.frcapi.com/api/v2/riskIntelligence/retrieve",
+        )
+
+    assert client.api_endpoint == "https://eu.frcapi.com"
     assert (
-        client.siteverify_endpoint == "https://eu.frcapi.com/api/v2/captcha/siteverify"
+        client.risk_intelligence_retrieve_endpoint
+        == "https://eu.frcapi.com/api/v2/riskIntelligence/retrieve"
+    )
+
+
+def test_risk_intelligence_retrieve_endpoint_empty_is_error():
+    from friendly_captcha_client.client import FriendlyCaptchaClient
+
+    with pytest.deprecated_call(
+        match="risk_intelligence_retrieve_endpoint is deprecated"
+    ):
+        with pytest.raises(
+            ValueError, match="risk_intelligence_retrieve_endpoint must not be empty"
+        ):
+            FriendlyCaptchaClient(
+                api_key="FRC_APIKEY",
+                sitekey="FRC_SITE_KEY",
+                risk_intelligence_retrieve_endpoint="",
+            )
+
+
+def test_risk_intelligence_retrieve_endpoint_invalid_url_is_error():
+    from friendly_captcha_client.client import FriendlyCaptchaClient
+
+    with pytest.deprecated_call(
+        match="risk_intelligence_retrieve_endpoint is deprecated"
+    ):
+        with pytest.raises(
+            ValueError,
+            match="invalid risk_intelligence_retrieve_endpoint URL: expected fully qualified URL",
+        ):
+            FriendlyCaptchaClient(
+                api_key="FRC_APIKEY",
+                sitekey="FRC_SITE_KEY",
+                risk_intelligence_retrieve_endpoint="not-a-url",
+            )
+
+
+def test_api_endpoint_takes_precedence_over_deprecated_retrieve_endpoint():
+    from friendly_captcha_client.client import FriendlyCaptchaClient
+
+    with pytest.deprecated_call(
+        match="risk_intelligence_retrieve_endpoint is deprecated"
+    ):
+        client = FriendlyCaptchaClient(
+            api_key="FRC_APIKEY",
+            sitekey="FRC_SITE_KEY",
+            api_endpoint="global",
+            risk_intelligence_retrieve_endpoint="https://eu.frcapi.com/api/v2/riskIntelligence/retrieve",
+        )
+
+    assert client.api_endpoint == "https://global.frcapi.com"
+    assert (
+        client.risk_intelligence_retrieve_endpoint
+        == "https://global.frcapi.com/api/v2/riskIntelligence/retrieve"
     )
 
 
@@ -222,3 +420,91 @@ def test_verify_captcha_response_errors_strict(
         )
         assert result.should_accept == expected_should_accept
         assert result.was_able_to_verify == expected_was_able_to_verify
+
+
+def test_retrieve_risk_intelligence_success(client):
+    retrieve_response = {
+        "success": True,
+        "data": {
+            "risk_intelligence": {
+                "network": {"ip": "127.0.0.1"},
+                "client": {
+                    "header_user_agent": "Mozilla/5.0",
+                    "browser": {
+                        "id": "chrome",
+                        "name": "Chrome",
+                        "version": "91.0.4472.124",
+                        "release_date": "2021-06-24",
+                    },
+                },
+            },
+            "details": {
+                "timestamp": "2023-08-04T13:01:25Z",
+                "expires_at": "2023-08-04T13:06:25Z",
+                "num_uses": 1,
+            },
+        },
+    }
+
+    with requests_mock.Mocker() as m:
+        m.post(
+            client.risk_intelligence_retrieve_endpoint,
+            json=retrieve_response,
+            status_code=200,
+        )
+
+        result: RiskIntelligenceRetrieveResult = client.retrieve_risk_intelligence(
+            "token"
+        )
+        assert result.was_able_to_retrieve is True
+        assert result.is_client_error is False
+        assert result.data is not None
+        assert result.data.details.num_uses == 1
+        assert result.data.risk_intelligence is not None
+        assert result.data.risk_intelligence.client is not None
+        assert result.data.risk_intelligence.client.browser is not None
+        assert result.data.risk_intelligence.client.browser.id == "chrome"
+
+
+@pytest.mark.parametrize(
+    "error_code",
+    [
+        DefaultErrorCodes.AUTH_REQUIRED,
+        DefaultErrorCodes.AUTH_INVALID,
+        DefaultErrorCodes.BAD_REQUEST,
+        DefaultErrorCodes.TOKEN_MISSING,
+        DefaultErrorCodes.TOKEN_EXPIRED,
+    ],
+)
+def test_retrieve_risk_intelligence_client_errors(client, error_code):
+    with requests_mock.Mocker() as m:
+        m.post(
+            client.risk_intelligence_retrieve_endpoint,
+            json={
+                "success": False,
+                "error": {"error_code": error_code, "detail": ""},
+            },
+            status_code=400,
+        )
+
+        result: RiskIntelligenceRetrieveResult = client.retrieve_risk_intelligence(
+            "token"
+        )
+        assert result.was_able_to_retrieve is False
+        assert result.is_client_error is True
+
+
+def test_retrieve_risk_intelligence_bad_response_with_500(client):
+    with requests_mock.Mocker() as m:
+        m.post(
+            client.risk_intelligence_retrieve_endpoint,
+            text="<html><body>Something went horribly wrong</body></html>",
+            status_code=500,
+            headers={"Content-Type": "text/html"},
+        )
+
+        result: RiskIntelligenceRetrieveResult = client.retrieve_risk_intelligence(
+            "token"
+        )
+        assert result.was_able_to_retrieve is False
+        assert result.is_client_error is False

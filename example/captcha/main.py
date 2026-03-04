@@ -12,7 +12,8 @@ FRC_SITEKEY = os.getenv("FRC_SITEKEY")
 FRC_APIKEY = os.getenv("FRC_APIKEY")
 
 # Optionally we can pass in custom endpoints to be used, such as "eu".
-FRC_SITEVERIFY_ENDPOINT = os.getenv("FRC_SITEVERIFY_ENDPOINT")
+FRC_API_ENDPOINT = os.getenv("FRC_API_ENDPOINT")
+# Optional: frontend widget endpoint used for data-api-endpoint.
 FRC_WIDGET_ENDPOINT = os.getenv("FRC_WIDGET_ENDPOINT")
 
 if not FRC_SITEKEY or not FRC_APIKEY:
@@ -24,7 +25,7 @@ if not FRC_SITEKEY or not FRC_APIKEY:
 frc_client = FriendlyCaptchaClient(
     api_key=FRC_APIKEY,
     sitekey=FRC_SITEKEY,
-    siteverify_endpoint=FRC_SITEVERIFY_ENDPOINT,  # Optional, defaults to "global"
+    api_endpoint=FRC_API_ENDPOINT,  # Optional, defaults to "global"
     strict=False,
 )
 

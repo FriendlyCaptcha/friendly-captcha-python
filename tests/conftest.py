@@ -11,7 +11,7 @@ def client():
     return FriendlyCaptchaClient(
         api_key=API_KEY,
         sitekey=SITEKEY,
-        siteverify_endpoint="http://localhost",
+        api_endpoint="http://localhost",
         strict=False,
         verbose=True,
     )
@@ -22,7 +22,7 @@ def strict_client():
     return FriendlyCaptchaClient(
         api_key=API_KEY,
         sitekey=SITEKEY,
-        siteverify_endpoint="http://localhost",
+        api_endpoint="http://localhost",
         strict=True,
         verbose=True,
     )
