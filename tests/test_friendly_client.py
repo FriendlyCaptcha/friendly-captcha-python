@@ -91,8 +91,7 @@ def test_shorthand_api_endpoint():
 
     assert client.api_endpoint == "https://eu.frcapi.com"
     assert (
-        client.siteverify_endpoint
-        == "https://eu.frcapi.com/api/v2/captcha/siteverify"
+        client.siteverify_endpoint == "https://eu.frcapi.com/api/v2/captcha/siteverify"
     )
     assert (
         client.risk_intelligence_retrieve_endpoint
@@ -164,7 +163,8 @@ def test_siteverify_endpoint_invalid_url_is_error():
 
     with pytest.deprecated_call(match="siteverify_endpoint is deprecated"):
         with pytest.raises(
-            ValueError, match="invalid siteverify_endpoint URL: expected fully qualified URL"
+            ValueError,
+            match="invalid siteverify_endpoint URL: expected fully qualified URL",
         ):
             FriendlyCaptchaClient(
                 api_key="FRC_APIKEY",
