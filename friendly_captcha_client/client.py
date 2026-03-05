@@ -138,11 +138,9 @@ class FriendlyCaptchaClient:
     def _get_current_version():
         my_version = "0.0.0"
         try:
-            import pkg_resources
+            from importlib.metadata import version
 
-            my_version = pkg_resources.get_distribution(
-                "friendly-captcha-client"
-            ).version
+            my_version = version("friendly-captcha-client")
         except Exception:
             pass
         return my_version
@@ -340,6 +338,8 @@ class FriendlyCaptchaClient:
             return RiskIntelligenceRetrieveResult(
                 was_able_to_retrieve=False,
             )
+
+        print(f"friendly-captcha-python@{self._get_current_version()}")
 
         response = requests.post(
             url=self.risk_intelligence_retrieve_endpoint,
