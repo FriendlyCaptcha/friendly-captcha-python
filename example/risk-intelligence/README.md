@@ -4,7 +4,7 @@ This example demonstrates server-side risk intelligence retrieval with `retrieve
 
 ### Requirements
 
-- Python 3.9+
+- Python 3.10+
 - Your Friendly Captcha API key and sitekey.
 
 ### Start the application

@@ -4,7 +4,7 @@ This application integrates Friendly Captcha for form submissions using FastAPI.
 
 ### Requirements
 
-- Python 3.9+
+- Python 3.10+
 - Your Friendly Captcha API key and sitekey.
 
 ### Start the application
