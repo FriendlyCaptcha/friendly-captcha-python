@@ -133,6 +133,7 @@ class RiskIntelligenceRetrieveResponse(BaseModel):
 
 
 class RiskIntelligenceRetrieveResult(BaseModel):
+    is_valid: bool
     was_able_to_retrieve: bool
     data: Optional[RiskIntelligenceRetrieveResponseData] = None
     error: Optional[Error] = None

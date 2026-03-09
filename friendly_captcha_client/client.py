@@ -277,9 +277,11 @@ class FriendlyCaptchaClient:
         decode_response_failed = self._is_decode_response_failed(
             retrieve_response.error
         )
+        was_able_to_retrieve = status_code == 200 and not decode_response_failed
 
         return RiskIntelligenceRetrieveResult(
-            was_able_to_retrieve=(status_code == 200 and not decode_response_failed),
+            is_valid=was_able_to_retrieve and retrieve_response.success,
+            was_able_to_retrieve=was_able_to_retrieve,
             is_client_error=(status_code != 200 and not decode_response_failed),
             data=retrieve_response.data,
             error=retrieve_response.error,
@@ -343,7 +345,7 @@ class FriendlyCaptchaClient:
 
         response = requests.post(
             url=self.risk_intelligence_retrieve_endpoint,
-            json={"token": token},
+            json={"token": token, "sitekey": self.sitekey},
             headers={
                 "Content-Type": "application/json",
                 "Accept": "application/json",

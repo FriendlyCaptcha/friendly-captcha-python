@@ -143,7 +143,9 @@ def test_python_sdk_risk_intelligence_retrieve():
         assert (
             response.is_client_error == test["expectation"]["is_client_error"]
         ), f"Test {test['name']} failed [is client error]!"
-
+        assert (
+            response.is_valid == test["expectation"]["is_valid"]
+        ), f"Test {test['name']} failed [is valid token]!"
         if response.data is not None:
             raw = test.get("retrieve_response")
             if raw is not None:

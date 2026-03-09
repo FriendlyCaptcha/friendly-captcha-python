@@ -77,9 +77,13 @@ Use `retrieve_risk_intelligence` to retrieve risk intelligence data from a token
 
 ```python
 result = client.retrieve_risk_intelligence("RISK_INTELLIGENCE_TOKEN_HERE")
-print(result.was_able_to_retrieve)  # True/False
-print(result.is_client_error)  # True when the API responded with a client-side error
-print(result.data)  # The risk intelligence data
+if not result.was_able_to_retrieve:
+    # handle request/client error, inspect result.error
+    return
+if not result.is_valid:
+    # handle invalid token, inspect result.error
+    return
+print(result.data.risk_intelligence)  # The risk intelligence data
 ```
 
 ### Configuration
@@ -87,7 +91,7 @@ print(result.data)  # The risk intelligence data
 The client offers several configuration options:
 
 - **api_key**: Your Friendly Captcha API key.
-- **sitekey**: Your Friendly Captcha sitekey.
+- **sitekey**: (Optional) Your Friendly Captcha sitekey. Configure this if you want to ensure that a captcha solution or risk intelligence token was generated from a specific sitekey.
 - **strict**: (Optional) In case the client was not able to verify the captcha response at all (for example if there is a network failure or a mistake in configuration), by default the `verify_captcha_response` returns `True` regardless. By passing `strict=True`, it will return `False` instead: every response needs to be strictly verified.
 - **api_endpoint**: (Optional) Base API endpoint (for example `https://eu.frcapi.com`). Shorthands `eu` or `global` are also accepted. Default is `global`.
 - **siteverify_endpoint**: (Optional,Deprecated) Kept for backwards compatibility, use `api_endpoint` instead. Accepts a full siteverify URL or shorthands `eu`/`global`; path is stripped and converted to `api_endpoint`.

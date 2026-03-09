@@ -77,25 +77,33 @@ def post_form(
         data["message"] = "Risk intelligence retrieval failed: {}".format(result.error)
         return _render_template(request, **data)
 
+    if not result.is_valid:
+        data["message"] = "Risk intelligence token is invalid: {}".format(result.error)
+        return _render_template(request, **data)
+
+    # This should never happen since /retrieve should always return
+    # risk intelligence data if the token is valid and request is successful.
+    # But it's good practice to handle it just in case.
     if result.data is None:
         data["message"] = (
             "Risk intelligence retrieve succeeded, but no data was returned."
         )
         return _render_template(request, **data)
-
     if result.data.risk_intelligence is None:
         data["message"] = (
             "Token was valid, but risk intelligence data was not returned."
         )
-        data["token_timestamp"] = result.data.details.timestamp
-        data["token_expires_at"] = result.data.details.expires_at
-        data["token_num_uses"] = result.data.details.num_uses
+        data["token_timestamp"] = result.data.token.timestamp
+        data["token_expires_at"] = result.data.token.expires_at
+        data["token_num_uses"] = result.data.token.num_uses
+        data["token_origin"] = result.data.token.origin
         return _render_template(request, **data)
 
     data["message"] = "Retrieved risk intelligence data successfully."
-    data["token_timestamp"] = result.data.details.timestamp
-    data["token_expires_at"] = result.data.details.expires_at
-    data["token_num_uses"] = result.data.details.num_uses
+    data["token_timestamp"] = result.data.token.timestamp
+    data["token_expires_at"] = result.data.token.expires_at
+    data["token_num_uses"] = result.data.token.num_uses
+    data["token_origin"] = result.data.token.origin
     data["risk_intelligence_raw"] = json.dumps(
         result.data.risk_intelligence.model_dump(by_alias=True),
         indent=2,
