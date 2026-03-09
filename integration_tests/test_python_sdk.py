@@ -157,11 +157,14 @@ def test_python_sdk_risk_intelligence_retrieve():
                     assert exp is not None, "Expected retrieve data is missing"
 
                     assert (
+                        exp.event_id == res.event_id
+                    ), f"Test {test['name']}: Event ID does not match expected value"
+                    assert (
+                        exp.token == res.token
+                    ), f"Test {test['name']}: Retrieve token does not match expected value"
+                    assert (
                         exp.risk_intelligence == res.risk_intelligence
                     ), f"Test {test['name']}: Risk Intelligence data does not match expected value"
-                    assert (
-                        exp.details == res.details
-                    ), f"Test {test['name']}: Retrieve details do not match expected value"
 
                     if (
                         exp.risk_intelligence is not None

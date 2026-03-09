@@ -98,20 +98,24 @@ class FriendlyCaptchaResult(BaseModel):
     is_client_error: bool = False
 
 
-class RiskIntelligenceRetrieveResponseDetails(BaseModel):
+class RiskIntelligenceRetrieveTokenData(BaseModel):
     # Timestamp when the token was generated.
     timestamp: str
     # Timestamp when the token expires.
     expires_at: str
     # Number of times the token has been used.
     num_uses: int
+    # The origin of the site where the token was generated.
+    origin: str
 
 
 class RiskIntelligenceRetrieveResponseData(BaseModel):
+    # Unique identifier for this retrieve token call.
+    event_id: str
+    # Metadata about the token and retrieval operation.
+    token: RiskIntelligenceRetrieveTokenData
     # Risk information extracted from the retrieve token.
     risk_intelligence: Optional[RiskIntelligenceData] = None
-    # Metadata about the token and retrieval operation.
-    details: RiskIntelligenceRetrieveResponseDetails
 
 
 class RiskIntelligenceRetrieveResponse(BaseModel):

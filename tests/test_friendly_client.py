@@ -330,6 +330,7 @@ def test_retrieve_risk_intelligence_success(client):
     retrieve_response = {
         "success": True,
         "data": {
+            "event_id": "ev_1234567890",
             "risk_intelligence": {
                 "network": {"ip": "127.0.0.1"},
                 "client": {
@@ -342,10 +343,11 @@ def test_retrieve_risk_intelligence_success(client):
                     },
                 },
             },
-            "details": {
+            "token": {
                 "timestamp": "2023-08-04T13:01:25Z",
                 "expires_at": "2023-08-04T13:06:25Z",
                 "num_uses": 1,
+                "origin": "https://example.com",
             },
         },
     }
@@ -363,7 +365,8 @@ def test_retrieve_risk_intelligence_success(client):
         assert result.was_able_to_retrieve is True
         assert result.is_client_error is False
         assert result.data is not None
-        assert result.data.details.num_uses == 1
+        assert result.data.token.num_uses == 1
+        assert result.data.token.origin == "https://example.com"
         assert result.data.risk_intelligence is not None
         assert result.data.risk_intelligence.client is not None
         assert result.data.risk_intelligence.client.browser is not None
