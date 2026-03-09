@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, field_validator, model_validator
 
@@ -74,6 +74,7 @@ class VerifyResponseData(BaseModel):
     # Risk information about the solver of the captcha.
     # This may be None if risk intelligence is not enabled for your Friendly Captcha account.
     risk_intelligence: Optional[RiskIntelligenceData] = None
+    risk_intelligence_raw: Optional[dict[str, Any]] = None
 
 
 class FriendlyCaptchaResponse(BaseModel):
@@ -116,6 +117,7 @@ class RiskIntelligenceRetrieveResponseData(BaseModel):
     token: RiskIntelligenceRetrieveTokenData
     # Risk information extracted from the retrieve token.
     risk_intelligence: Optional[RiskIntelligenceData] = None
+    risk_intelligence_raw: Optional[dict[str, Any]] = None
 
 
 class RiskIntelligenceRetrieveResponse(BaseModel):

@@ -368,6 +368,10 @@ def test_retrieve_risk_intelligence_success(client):
         assert result.data.token.num_uses == 1
         assert result.data.token.origin == "https://example.com"
         assert result.data.risk_intelligence is not None
+        assert (
+            result.data.risk_intelligence_raw
+            == retrieve_response["data"]["risk_intelligence"]
+        )
         assert result.data.risk_intelligence.client is not None
         assert result.data.risk_intelligence.client.browser is not None
         assert result.data.risk_intelligence.client.browser.id == "chrome"

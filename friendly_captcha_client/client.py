@@ -1,4 +1,5 @@
 import logging
+from copy import deepcopy
 from typing import Any, Tuple, Type, TypeVar, Union
 from urllib.parse import urlparse
 
@@ -167,6 +168,8 @@ class FriendlyCaptchaClient:
             parsed_response = self._create_response_with_error({}, e, response_model)
             return parsed_response, response.status_code
 
+        raw_response = self._preserve_risk_intelligence_raw(raw_response)
+
         try:
             parsed_response = response_model.model_validate(raw_response)
         except ValidationError as e:
@@ -184,6 +187,21 @@ class FriendlyCaptchaClient:
             )
 
         return parsed_response, response.status_code
+
+    @staticmethod
+    def _preserve_risk_intelligence_raw(raw_response: Any) -> Any:
+        if not isinstance(raw_response, dict):
+            return raw_response
+
+        data = raw_response.get("data")
+        if not isinstance(data, dict):
+            return raw_response
+
+        risk_intelligence = data.get("risk_intelligence")
+        if isinstance(risk_intelligence, dict):
+            data["risk_intelligence_raw"] = deepcopy(risk_intelligence)
+
+        return raw_response
 
     def _is_loose_verification_available(
         self, status_code: int, error: Union[Error, None]

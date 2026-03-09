@@ -1,4 +1,5 @@
 import json
+from operator import contains
 import pytest
 import requests
 
@@ -90,6 +91,11 @@ def test_python_sdk_captcha_siteverify():
                         exp.risk_intelligence == res.risk_intelligence
                     ), f"Test {test['name']}: Risk Intelligence data does not match expected value"
 
+                    if exp.risk_intelligence is not None:
+                        assert contains(
+                            json.dumps(res.risk_intelligence_raw), "header_user_agent"
+                        ), f"Test {test['name']}: Risk Intelligence raw data does not contain 'header_user_agent'"
+
                     # Check specific fields
                     if (
                         exp.risk_intelligence is not None
@@ -167,6 +173,11 @@ def test_python_sdk_risk_intelligence_retrieve():
                     assert (
                         exp.risk_intelligence == res.risk_intelligence
                     ), f"Test {test['name']}: Risk Intelligence data does not match expected value"
+
+                    if exp.risk_intelligence is not None:
+                        assert contains(
+                            json.dumps(res.risk_intelligence_raw), "header_user_agent"
+                        ), f"Test {test['name']}: Risk Intelligence raw data does not contain 'header_user_agent'"
 
                     if (
                         exp.risk_intelligence is not None
