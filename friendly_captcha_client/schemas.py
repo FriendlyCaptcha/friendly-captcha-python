@@ -83,12 +83,12 @@ class FriendlyCaptchaResponse(BaseModel):
     error: Optional[Error] = None
 
     @model_validator(mode="after")
-    def check_data_or_error(cls, values):
-        if values.success and values.error:
+    def check_data_or_error(self):
+        if self.success and self.error:
             raise ValueError("If success is True, error should not be set.")
-        if not values.success and values.data:
+        if not self.success and self.data:
             raise ValueError("If success is False, data should not be set.")
-        return values
+        return self
 
 
 class FriendlyCaptchaResult(BaseModel):
@@ -126,12 +126,12 @@ class RiskIntelligenceRetrieveResponse(BaseModel):
     error: Optional[Error] = None
 
     @model_validator(mode="after")
-    def check_data_or_error(cls, values):
-        if values.success and values.error:
+    def check_data_or_error(self):
+        if self.success and self.error:
             raise ValueError("If success is True, error should not be set.")
-        if not values.success and values.data:
+        if not self.success and self.data:
             raise ValueError("If success is False, data should not be set.")
-        return values
+        return self
 
 
 class RiskIntelligenceRetrieveResult(BaseModel):
