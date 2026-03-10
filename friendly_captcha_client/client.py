@@ -117,7 +117,7 @@ class FriendlyCaptchaClient:
         error_detail = error_payload.get("detail", str(default_error_detail))
 
         return response_model(
-            success=raw_response.get("success", False),
+            success=False,
             error=Error(
                 error_code=error_code,
                 detail=error_detail,
