@@ -67,8 +67,10 @@
         <label>Message:</label><br />
         <textarea name="message"></textarea><br />
 
-        <div class="frc-captcha" data-sitekey="{{ sitekey }}" {% if widget_endpoint %}data-api-endpoint="{{ widget_endpoint }}" {% endif %}></div>
-        <div class="frc-risk-intelligence" data-sitekey="{{ sitekey }}" {% if widget_endpoint %}data-api-endpoint="{{ widget_endpoint }}" {% endif %}></div>
+        <div class="frc-captcha" data-sitekey="{{ sitekey }}" {% if widget_endpoint
+          %}data-api-endpoint="{{ widget_endpoint }}" {% endif %}></div>
+        <div class="frc-risk-intelligence" data-sitekey="{{ sitekey }}" {% if widget_endpoint
+          %}data-api-endpoint="{{ widget_endpoint }}" {% endif %}></div>
         <input style="margin-top: 1em" type="submit" value="Submit" />
       </div>
     </form>
