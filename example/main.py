@@ -1,18 +1,24 @@
+import json
 import os
 
-from fastapi import FastAPI, Request, Form
+from fastapi import FastAPI, Form, Request
 from fastapi.templating import Jinja2Templates
-from friendly_captcha_client.client import FriendlyCaptchaClient, FriendlyCaptchaResult
+
+from friendly_captcha_client.client import (
+    FriendlyCaptchaClient,
+    FriendlyCaptchaResult,
+    RiskIntelligenceRetrieveResult,
+)
 
 app = FastAPI()
-
 templates = Jinja2Templates(directory="./templates/")
 
 FRC_SITEKEY = os.getenv("FRC_SITEKEY")
 FRC_APIKEY = os.getenv("FRC_APIKEY")
 
 # Optionally we can pass in custom endpoints to be used, such as "eu".
-FRC_SITEVERIFY_ENDPOINT = os.getenv("FRC_SITEVERIFY_ENDPOINT")
+FRC_API_ENDPOINT = os.getenv("FRC_API_ENDPOINT")
+# Optional: frontend widget endpoint used for data-api-endpoint.
 FRC_WIDGET_ENDPOINT = os.getenv("FRC_WIDGET_ENDPOINT")
 
 if not FRC_SITEKEY or not FRC_APIKEY:
@@ -24,9 +30,40 @@ if not FRC_SITEKEY or not FRC_APIKEY:
 frc_client = FriendlyCaptchaClient(
     api_key=FRC_APIKEY,
     sitekey=FRC_SITEKEY,
-    siteverify_endpoint=FRC_SITEVERIFY_ENDPOINT,  # Optional, defaults to "global"
+    api_endpoint=FRC_API_ENDPOINT,  # Optional, defaults to "global"
     strict=False,
 )
+
+
+def retrieve_risk_intelligence_if_available(token: str) -> None:
+    token = (token or "").strip()
+    if not token:
+        print("No risk intelligence token found in form data, skipping retrieval.")
+        return
+
+    result: RiskIntelligenceRetrieveResult = frc_client.retrieve_risk_intelligence(
+        token
+    )
+    if not result.was_able_to_retrieve:
+        print("Failed to retrieve risk intelligence:", result.error)
+        return
+
+    if not result.is_valid:
+        print("Risk intelligence token is invalid:", result.error)
+        return
+
+    if result.data is None:
+        print("Risk intelligence retrieval succeeded, but no data was returned.")
+        return
+
+    if result.data.risk_intelligence_raw is None:
+        print("Token was valid, but risk intelligence data was not returned.")
+        return
+
+    print("Risk Intelligence Data:")
+    print(json.dumps(result.data.risk_intelligence_raw, indent=2))
+    print("Token data:")
+    print(result.data.token)
 
 
 @app.get("/")
@@ -48,15 +85,18 @@ def post_form(
     subject: str = Form(None),
     message: str = Form(None),
     frc_captcha_response: str = Form(..., alias="frc-captcha-response"),
+    frc_risk_intelligence_token: str = Form("", alias="frc-risk-intelligence-token"),
 ):
+    retrieve_risk_intelligence_if_available(frc_risk_intelligence_token)
+
     result: FriendlyCaptchaResult = frc_client.verify_captcha_response(
         frc_captcha_response
     )
 
     if not result.was_able_to_verify:
         # In this case we were not actually able to verify the response embedded in the form, but we may still want to accept it.
-        # It could mean there is a network issue or that the service is down. In those cases you generally want to accept submissions anyhow
-        # That's why we use `shouldAccept()` below to actually accept or reject the form submission. It will return true in these cases.
+        # It could mean there is a network issue or that the service is down. In those cases you generally want to accept submissions anyhow.
+        # That's why we use `should_accept` below to actually accept or reject the form submission. It will return true in these cases.
 
         if result.is_client_error:
             # Something is wrong with our configuration, check your API key!

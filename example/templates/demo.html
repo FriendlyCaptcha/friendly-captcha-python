@@ -47,9 +47,8 @@
     }
   </style>
 
-  <script type="module" src="https://cdn.jsdelivr.net/npm/@friendlycaptcha/sdk@0.1.8/site.min.js" async defer></script>
-  <script nomodule src="https://cdn.jsdelivr.net/npm/@friendlycaptcha/sdk@0.1.8/site.compat.min.js" async
-    defer></script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@friendlycaptcha/sdk/site.min.js" async defer></script>
+  <script nomodule src="https://cdn.jsdelivr.net/npm/@friendlycaptcha/sdk/site.compat.min.js" async defer></script>
 
   <!-- You can change the data-api-endpoint via this tag. More info here https://developer.friendlycaptcha.com/docs/sdk/configuration -->
   <!-- <meta name="frc-api-endpoint" content=".">  -->
@@ -69,6 +68,8 @@
         <textarea name="message"></textarea><br />
 
         <div class="frc-captcha" data-sitekey="{{ sitekey }}" {% if widget_endpoint
+          %}data-api-endpoint="{{ widget_endpoint }}" {% endif %}></div>
+        <div class="frc-risk-intelligence" data-sitekey="{{ sitekey }}" {% if widget_endpoint
           %}data-api-endpoint="{{ widget_endpoint }}" {% endif %}></div>
         <input style="margin-top: 1em" type="submit" value="Submit" />
       </div>
