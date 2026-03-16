@@ -14,14 +14,14 @@ pip install friendly-captcha-client
 
 Below are some basic examples of how to use the client.
 
-For a more detailed examples, take a look at the [example](./example) directory.
+For a more detailed example, take a look at the [example](./example) directory.
 
 ### Initialization
 
 To start using the client:
 
 ```python
-from friendly_client import FriendlyCaptchaClient
+from friendly_captcha_client.client import FriendlyCaptchaClient
 
 client = FriendlyCaptchaClient(
     api_key="YOUR_API_KEY",

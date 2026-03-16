@@ -5,4 +5,4 @@ python-multipart==0.0.6
 
 # To use the example outside of this repository, replace the line below with the latest
 # `friendly-captcha-client==x.y.z` version.
--e ../..
+-e ..
