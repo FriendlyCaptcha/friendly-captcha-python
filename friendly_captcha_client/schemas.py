@@ -25,7 +25,8 @@ class DefaultErrorCodes(str, Enum):
     SITEKEY_INVALID = "sitekey_invalid"  # 400
     RESPONSE_MISSING = "response_missing"  # 400
     TOKEN_MISSING = "token_missing"  # 400
-    TOKEN_EXPIRED = "token_expired"  # 400
+    TOKEN_EXPIRED = "token_expired"  # 200
+    TOKEN_INVALID = "token_invalid"  # 200
     BAD_REQUEST = "bad_request"  # 400
     RESPONSE_INVALID = "response_invalid"  # 200
     RESPONSE_TIMEOUT = "response_timeout"  # 200
