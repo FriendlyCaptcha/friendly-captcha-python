@@ -1,6 +1,7 @@
 from unittest.mock import Mock, patch
 
 import pytest
+import requests
 import requests_mock
 
 from friendly_captcha_client.client import (
@@ -418,4 +419,55 @@ def test_retrieve_risk_intelligence_bad_response_with_500(client):
             "token"
         )
         assert result.was_able_to_retrieve is False
+        assert result.is_client_error is False
+
+
+@pytest.mark.parametrize(
+    "exception,expected_error_code",
+    [
+        (requests.ConnectionError("refused"), DefaultErrorCodes.REQUEST_FAILED),
+        (requests.Timeout("timed out"), DefaultErrorCodes.REQUEST_FAILED_TIMEOUT),
+    ],
+)
+def test_verify_captcha_response_request_failed(client, exception, expected_error_code):
+    with patch("requests.post", side_effect=exception):
+        result: FriendlyCaptchaResult = client.verify_captcha_response(CAPTCHA_RESPONSE)
+        assert result.should_accept is True
+        assert result.was_able_to_verify is False
+        assert result.is_client_error is False
+        assert result.error.error_code == expected_error_code
+
+
+def test_verify_captcha_response_request_failed_strict(strict_client):
+    with patch("requests.post", side_effect=requests.ConnectionError("refused")):
+        result: FriendlyCaptchaResult = strict_client.verify_captcha_response(
+            CAPTCHA_RESPONSE
+        )
+        assert result.should_accept is False
+        assert result.was_able_to_verify is False
+        assert result.is_client_error is False
+
+
+def test_retrieve_risk_intelligence_request_failed(client):
+    with patch("requests.post", side_effect=requests.ConnectionError("refused")):
+        result: RiskIntelligenceRetrieveResult = client.retrieve_risk_intelligence(
+            "token"
+        )
+        assert result.is_valid is False
+        assert result.was_able_to_retrieve is False
+        assert result.is_client_error is False
+        assert result.error.error_code == DefaultErrorCodes.REQUEST_FAILED
+
+
+def test_verify_captcha_response_bad_response_with_503(client):
+    with requests_mock.Mocker() as m:
+        m.post(
+            client.siteverify_endpoint,
+            text="<html><body>Service unavailable</body></html>",
+            status_code=503,
+            headers={"Content-Type": "text/html"},
+        )
+        result: FriendlyCaptchaResult = client.verify_captcha_response(CAPTCHA_RESPONSE)
+        assert result.should_accept is True
+        assert result.was_able_to_verify is False
         assert result.is_client_error is False
