@@ -230,10 +230,18 @@ class FriendlyCaptchaClient:
             or all(  # unknown errors where we allow loose verification
                 error_code != _error.value for _error in DefaultErrorCodes
             )
-            and status_code in [200, 500]
+            and (status_code == 200 or status_code >= 500)
         ):
             return True
         return False
+
+    def _request_failed_error(self, e: requests.RequestException) -> Error:
+        if self.verbose:
+            self.logger.error("Error requesting Friendly Captcha API: %s", e)
+        error_code = DefaultErrorCodes.REQUEST_FAILED
+        if isinstance(e, requests.Timeout):
+            error_code = DefaultErrorCodes.REQUEST_FAILED_TIMEOUT
+        return Error(error_code=error_code.value, detail=str(e))
 
     @staticmethod
     def _is_decode_response_failed(error: Union[Error, None]) -> bool:
@@ -326,17 +334,25 @@ class FriendlyCaptchaClient:
                 was_able_to_verify=True,
             )
 
-        response = requests.post(
-            url=self.siteverify_endpoint,
-            json={"response": captcha_response, "sitekey": self.sitekey},
-            headers={
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-                "X-Api-Key": self.api_key,
-                "Frc-Sdk": f"friendly-captcha-python@{self._get_current_version()}",
-            },
-            timeout=timeout,
-        )
+        try:
+            response = requests.post(
+                url=self.siteverify_endpoint,
+                json={"response": captcha_response, "sitekey": self.sitekey},
+                headers={
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "X-Api-Key": self.api_key,
+                    "Frc-Sdk": f"friendly-captcha-python@{self._get_current_version()}",
+                },
+                timeout=timeout,
+            )
+        except requests.RequestException as e:
+            return FriendlyCaptchaResult(
+                should_accept=not self.strict,
+                was_able_to_verify=False,
+                is_client_error=False,
+                error=self._request_failed_error(e),
+            )
         return self._handle_verify_captcha_response(response)
 
     def retrieve_risk_intelligence(
@@ -356,20 +372,27 @@ class FriendlyCaptchaClient:
         """
         if not isinstance(token, str):
             return RiskIntelligenceRetrieveResult(
+                is_valid=False,
                 was_able_to_retrieve=False,
             )
 
-        print(f"friendly-captcha-python@{self._get_current_version()}")
-
-        response = requests.post(
-            url=self.risk_intelligence_retrieve_endpoint,
-            json={"token": token, "sitekey": self.sitekey},
-            headers={
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-                "X-Api-Key": self.api_key,
-                "Frc-Sdk": f"friendly-captcha-python@{self._get_current_version()}",
-            },
-            timeout=timeout,
-        )
+        try:
+            response = requests.post(
+                url=self.risk_intelligence_retrieve_endpoint,
+                json={"token": token, "sitekey": self.sitekey},
+                headers={
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "X-Api-Key": self.api_key,
+                    "Frc-Sdk": f"friendly-captcha-python@{self._get_current_version()}",
+                },
+                timeout=timeout,
+            )
+        except requests.RequestException as e:
+            return RiskIntelligenceRetrieveResult(
+                is_valid=False,
+                was_able_to_retrieve=False,
+                is_client_error=False,
+                error=self._request_failed_error(e),
+            )
         return self._handle_risk_intelligence_retrieve_response(response)

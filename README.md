@@ -38,7 +38,7 @@ After calling `verify_captcha_response` with the captcha response there are two 
 
 Below are some examples of this behaviour.
 
-#### Verifying a correct captcha response without issues when veryfing:
+#### Verifying a correct captcha response without issues when verifying:
 
 ```python
 result = client.verify_captcha_response("CORRECT?CAPTCHA_RESPONSE_HERE")
@@ -46,7 +46,7 @@ print(result.was_able_to_verify) # True
 print(result.should_accept) # True
 ```
 
-#### Verifying an incorrect captcha response without issues when veryfing:
+#### Verifying an incorrect captcha response without issues when verifying:
 
 ```python
 result = client.verify_captcha_response("INCORRECT_CAPTCHA_RESPONSE_HERE")
@@ -54,7 +54,7 @@ print(result.was_able_to_verify) # True
 print(result.should_accept) # False
 ```
 
-#### Verifying an incorrect captcha response with issues (network issues or bad configuration) when veryfing in non-strict mode (default):
+#### Verifying an incorrect captcha response with issues (network issues or bad configuration) when verifying in non-strict mode (default):
 
 ```python
 result = client.verify_captcha_response("INCORRECT_CAPTCHA_RESPONSE_HERE")
@@ -62,7 +62,9 @@ print(result.was_able_to_verify) # False
 print(result.should_accept) # True
 ```
 
-#### Verifying an incorrect captcha response with issues (network/service issues or bad configuration) when veryfing in strict mode:
+Network errors don't raise an exception. Check `result.error.error_code` for `request_failed` or `request_failed_due_to_timeout`.
+
+#### Verifying an incorrect captcha response with issues (network/service issues or bad configuration) when verifying in strict mode:
 
 ```python
 client.strict = True

@@ -32,6 +32,8 @@ class DefaultErrorCodes(str, Enum):
     RESPONSE_TIMEOUT = "response_timeout"  # 200
     RESPONSE_DUPLICATE = "response_duplicate"  # 200
     CLIENT_ERROR = "request_failed_due_to_client_error"
+    REQUEST_FAILED = "request_failed"
+    REQUEST_FAILED_TIMEOUT = "request_failed_due_to_timeout"
 
     @staticmethod
     def contains(value: str) -> bool:
