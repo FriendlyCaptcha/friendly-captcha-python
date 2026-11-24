@@ -23,6 +23,10 @@ EU_API_ENDPOINT = "https://eu.frcapi.com"
 CAPTCHA_SITEVERIFY_PATH = "/api/v2/captcha/siteverify"
 RISK_INTELLIGENCE_RETRIEVE_PATH = "/api/v2/riskIntelligence/retrieve"
 
+# Longer captcha responses are truncated to this before they are sent. It's above the API's request body limit, so
+# the API still answers them as invalid. Truncating keeps the upload short enough to finish before the timeout.
+MAX_CAPTCHA_RESPONSE_LENGTH = 2 * 1024 * 1024
+
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -333,6 +337,8 @@ class FriendlyCaptchaClient:
                 should_accept=False,
                 was_able_to_verify=True,
             )
+
+        captcha_response = captcha_response[:MAX_CAPTCHA_RESPONSE_LENGTH]
 
         try:
             response = requests.post(

@@ -279,6 +279,17 @@ def test_unencodable_captcha_response(client):
     )
 
 
+def test_too_long_captcha_response_is_truncated_and_sent(client):
+    with requests_mock.Mocker() as m:
+        m.post(
+            client.siteverify_endpoint,
+            json=MOCK_RESPONSES[DefaultErrorCodes.RESPONSE_INVALID][0],
+        )
+        result = client.verify_captcha_response("A" * (3 * 1024 * 1024))
+        assert len(m.last_request.json()["response"]) == 2 * 1024 * 1024
+        assert result.should_accept is False
+
+
 # Data-driven test using pytest's parametrize
 @pytest.mark.parametrize(
     "error_code,expected_should_accept,expected_was_able_to_verify",
